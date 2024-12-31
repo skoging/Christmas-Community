@@ -24,6 +24,11 @@ const config = {
   googleSSOClientId: process.env.GOOGLE_CLIENT_ID || null,
   googleSSOClientSecret: process.env.GOOGLE_CLIENT_SECRET || null,
   googleSSOEnabled: false,
+	cfTeamName: process.env.CF_TEAM_NAME || null,
+	cfAppAudience: process.env.CF_APP_AUDIENCE || null,
+	cfSetupAdminEmail: process.env.CF_SETUP_ADMIN_EMAIL || null,
+	cfZeroAuthSSOEnabled: false,
+	localLoginEnabled: true,
   rootUrl: appendSlash(process.env.ROOT_URL ?? process.env.ROOT_PATH ?? '/'),
   base: '' // automatically set below
 }
@@ -36,6 +41,12 @@ if (config.guestPassword === 'ReplaceWithYourGuestPassword') {
 
 if (config.googleSSOClientId != null && config.googleSSOClientSecret != null) {
   config.googleSSOEnabled = true
+}
+
+if (config.cfTeamName != null) {
+	config.googleSSOEnabled = false
+	// config.localLoginEnabled = false
+	config.cfZeroAuthSSOEnabled = true
 }
 
 // The base path is used in HTML templates rather than the fully qualified path, mostly for legacy reasons. It also has the following advantages:

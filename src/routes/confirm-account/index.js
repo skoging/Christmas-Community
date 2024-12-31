@@ -5,7 +5,7 @@ export default function (db) {
   const router = express.Router()
 
   router.get('/:code', async (req, res) => {
-    const row = (await db.allDocs({ include_docs: true }))
+    const row = (await db.users.allDocs({ include_docs: true }))
       .rows
       .find(({ doc }) => doc.signupToken === req.params.code)
 
@@ -13,7 +13,7 @@ export default function (db) {
   })
 
   router.post('/:code', async (req, res) => {
-    const { doc } = (await db.allDocs({ include_docs: true }))
+    const { doc } = (await db.users.allDocs({ include_docs: true }))
       .rows
       .find(({ doc }) => doc.signupToken === req.params.code)
 
@@ -26,7 +26,7 @@ export default function (db) {
       delete doc.signupToken
       delete doc.expiry
 
-      await db.put(doc)
+      await db.users.put(doc)
 
       req.login({ _id: doc._id }, err => {
         if (err) {

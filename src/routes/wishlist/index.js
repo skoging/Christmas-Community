@@ -19,26 +19,34 @@ const totals = wishlist => {
   return { unpledged, pledged }
 }
 
+const groupIntersects = (groups, other) => {
+	if (groups?.length === 0 || other?.length === 0)
+	return groups.some(g => other.includes(g))
+}
+
 export default function (db) {
   const router = express.Router()
 
   const wishlistManager = _CC.wishlistManager
 
   router.get('/', publicRoute(), async (req, res) => {
-    const docs = await db.allDocs({ include_docs: true })
+    const docs = await db.users.allDocs({ include_docs: true })
     if (global._CC.config.wishlist.singleList) {
       for (const row of docs.rows) {
         if (row.doc.admin) return res.redirect(`/wishlist/${row.doc._id}`)
       }
     }
-    res.render('wishlists', { title: _CC.lang('WISHLISTS_TITLE'), users: docs.rows, totals })
+
+		var groupFilteredDocs = docs.rows.filter(d => d.id == req.user.id || groupIntersects(d.doc.groups, req.user.groups))
+
+    res.render('wishlists', { title: _CC.lang('WISHLISTS_TITLE'), users: groupFilteredDocs, totals })
   })
 
   async function redirectIfSingleUserMode (req, res, next) {
-    const dbUser = await db.get(req.params.user)
+    const dbUser = await db.users.get(req.params.user)
     if (_CC.config.wishlist.singleList) {
       if (!dbUser.admin) {
-        const docs = await db.allDocs({ include_docs: true })
+        const docs = await db.users.allDocs({ include_docs: true })
         for (const row of docs.rows) {
           if (row.doc.admin) return res.redirect(`/wishlist/${row.doc._id}`)
         }
@@ -53,6 +61,13 @@ export default function (db) {
       await wishlist.fetch()
       const items = await wishlist.itemsVisibleToUser(req.user._id)
 
+      const isOwnWishlist = req.user._id === wishlist.username
+
+			if (!isOwnWishlist && !groupIntersects(req.user.groups, wishlist.doc.groups)) {
+				req.flash('error', `Wishlist not found`)
+				return res.redirect('/')
+			}
+
       const compiledNotes = {}
       if (_CC.config.wishlist.note.markdown) {
         for (const item of items) {
@@ -61,8 +76,8 @@ export default function (db) {
       }
 
       res.render('wishlist', {
-        title: _CC.lang('WISHLIST_TITLE', wishlist.username),
-        name: wishlist.username,
+        title: _CC.lang('WISHLIST_TITLE', wishlist.title),
+        name: wishlist.title,
         items,
         compiledNotes,
         sharedInfo: wishlist.doc?.info ?? {}
@@ -76,6 +91,12 @@ export default function (db) {
   router.post('/:user', verifyAuth(), async (req, res) => {
     try {
       const wishlist = await wishlistManager.get(req.params.user)
+
+      const isOwnWishlist = req.user._id === wishlist.username
+			if (!isOwnWishlist && !groupIntersects(req.user.groups, wishlist.doc.groups)) {
+				req.flash('error', `Wishlist not found`)
+				return res.redirect('/')
+			}
 
       const { nonFatalErrors } = await wishlist.add({
         itemUrlOrName: req.body.itemUrlOrName,
@@ -105,6 +126,12 @@ export default function (db) {
       const wishlist = await wishlistManager.get(req.params.user)
       const item = await wishlist.get(req.params.itemId)
 
+      const isOwnWishlist = req.user._id === wishlist.username
+			if (!isOwnWishlist && !groupIntersects(req.user.groups, wishlist.doc.groups)) {
+				req.flash('error', `Wishlist not found`)
+				return res.redirect('/')
+			}
+
       if (item.pledgedBy !== undefined) {
         throw new Error(_CC.lang('WISHLIST_PLEDGE_DUPLICATE'))
       }
@@ -121,6 +148,12 @@ export default function (db) {
     try {
       const wishlist = await wishlistManager.get(req.params.user)
       const item = await wishlist.get(req.params.itemId)
+
+      const isOwnWishlist = req.user._id === wishlist.username
+			if (!isOwnWishlist && !groupIntersects(req.user.groups, wishlist.doc.groups)) {
+				req.flash('error', `Wishlist not found`)
+				return res.redirect('/')
+			}
 
       const pledgedByUser = item.pledgedBy === req.user._id
       if (!pledgedByUser) {
@@ -143,6 +176,11 @@ export default function (db) {
       const item = await wishlist.get(req.params.itemId)
 
       const isOwnWishlist = req.user._id === wishlist.username
+			if (!isOwnWishlist && !groupIntersects(req.user.groups, wishlist.doc.groups)) {
+				req.flash('error', `Wishlist not found`)
+				return res.redirect('/')
+			}
+
       const addedByUser = item.addedBy === req.user._id
       if (!isOwnWishlist && !addedByUser) {
         throw new Error(_CC.lang('WISHLIST_REMOVE_GUARD'))
@@ -189,6 +227,13 @@ export default function (db) {
   router.get('/:user/note/:id', verifyAuth(), async (req, res) => {
     try {
       const wishlist = await wishlistManager.get(req.params.user)
+
+      const isOwnWishlist = req.user._id === wishlist.username
+			if (!isOwnWishlist && !groupIntersects(req.user.groups, wishlist.doc.groups)) {
+				req.flash('error', `Wishlist not found`)
+				return res.redirect('/')
+			}
+
       const item = await wishlist.get(req.params.id)
       res.render('note', { item })
     } catch (error) {
@@ -202,7 +247,12 @@ export default function (db) {
       const wishlist = await wishlistManager.get(req.params.user)
       const item = await wishlist.get(req.params.id)
 
-      const isOwnWishlist = req.user._id === req.params.user
+      const isOwnWishlist = req.user._id === wishlist.username
+			if (!isOwnWishlist && !groupIntersects(req.user.groups, wishlist.doc.groups)) {
+				req.flash('error', `Wishlist not found`)
+				return res.redirect('/')
+			}
+
       const addedByUser = req.user._id === item.addedBy
       if (!isOwnWishlist && !addedByUser) {
         throw new Error(_CC.lang('NOTE_GUARD'))
@@ -223,7 +273,12 @@ export default function (db) {
       const wishlist = await wishlistManager.get(req.params.user)
       const item = await wishlist.get(req.params.id)
 
-      const isOwnWishlist = req.user._id === req.params.user
+      const isOwnWishlist = req.user._id === wishlist.username
+			if (!isOwnWishlist && !groupIntersects(req.user.groups, wishlist.doc.groups)) {
+				req.flash('error', `Wishlist not found`)
+				return res.redirect('/')
+			}
+
       const addedByUser = req.user._id === item.addedBy
       if (!isOwnWishlist && !addedByUser) {
         throw new Error(_CC.lang('WISHLIST_REFRESH_GUARD'))

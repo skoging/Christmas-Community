@@ -4,53 +4,67 @@ block title
   h1(style="margin-bottom: 0;")
     a(href='..') &lt;
     | #{config.siteTitle}
-  p= lang('ADMIN_USER_EDIT_EDITING_USER', user._id)
+  p= lang('ADMIN_USER_EDIT_EDITING_USER', user.displayName || user._id)
 
 block content
   .columns
     .column
-      if user.signupToken
-        - const signupLink = `${_CC.config.base}confirm-account/${user.signupToken}`
-        .box(style='overflow: hidden;')
-          .columns(style='margin-bottom: 0;')
-            .column.is-narrow(style='padding-bottom: 0;')
-              h2= lang('ADMIN_USER_EDIT_CONFIRMATION_LINK')
-            .column(style='padding-bottom: 0;')
-              p
-                span= lang('ADMIN_USER_EDIT_ACCOUNT_UNCONFIRMED')
-                br
-                if user.expiry > new Date().getTime()
-                  span= lang('ADMIN_USER_EDIT_LINK_EXPIRY_FUTURE', _CC.moment(user.expiry).fromNow())
-                else
-                  span.has-text-weight-bold(style='color: red;')= lang('ADMIN_USER_EDIT_LINK_EXPIRY_PAST', _CC.moment(user.expiry).fromNow())
-          h3(style='margin-bottom: 0; margin-top: 0;')
-            .level
-              .level-left
-                .level-item
-                  form(method='POST', action=`${_CC.config.base}admin-settings/edit/refresh-signup-token/${user._id}`)
-                    input.button.is-rounded(type='submit', value=lang('ADMIN_USER_EDIT_GENERATE_NEW_LINK'))
-                .level-item
-                  a(href=signupLink, style='font-family: monospaced; word-break: break-all;')= signupLink
+      //- if user.signupToken
+      //-   - const signupLink = `${_CC.config.base}confirm-account/${user.signupToken}`
+      //-   .box(style='overflow: hidden;')
+      //-     .columns(style='margin-bottom: 0;')
+      //-       .column.is-narrow(style='padding-bottom: 0;')
+      //-         h2= lang('ADMIN_USER_EDIT_CONFIRMATION_LINK')
+      //-       .column(style='padding-bottom: 0;')
+      //-         p
+      //-           span= lang('ADMIN_USER_EDIT_ACCOUNT_UNCONFIRMED')
+      //-           br
+      //-           if user.expiry > new Date().getTime()
+      //-             span= lang('ADMIN_USER_EDIT_LINK_EXPIRY_FUTURE', _CC.moment(user.expiry).fromNow())
+      //-           else
+      //-             span.has-text-weight-bold(style='color: red;')= lang('ADMIN_USER_EDIT_LINK_EXPIRY_PAST', _CC.moment(user.expiry).fromNow())
+      //-     h3(style='margin-bottom: 0; margin-top: 0;')
+      //-       .level
+      //-         .level-left
+      //-           .level-item
+      //-             form(method='POST', action=`${_CC.config.base}admin-settings/edit/refresh-signup-token/${user._id}`)
+      //-               input.button.is-rounded(type='submit', value=lang('ADMIN_USER_EDIT_GENERATE_NEW_LINK'))
+      //-           .level-item
+      //-             a(href=signupLink, style='font-family: monospaced; word-break: break-all;')= signupLink
       .columns
+        //- .column.is-narrow
+        //-   h2= lang('ADMIN_USER_EDIT_CHANGE_NAME')
+        //-   form(action=`${_CC.config.base}admin-settings/edit/rename/${user._id}`, method='POST')
+        //-     .field
+        //-       label.label= lang('ADMIN_USER_EDIT_USERNAME')
+        //-       .control.has-icons-left
+        //-         input.input(type='text', name='newUsername', placeholder=user._id, value=user._id)
+        //-         span.icon.is-small.is-left
+        //-           i.fas.fa-user
+        //-     .field
+        //-       .control
+        //-         input.button.is-primary(type='submit' value=lang('ADMIN_USER_EDIT_CHANGE_USERNAME'))
         .column.is-narrow
-          h2= lang('ADMIN_USER_EDIT_CHANGE_NAME')
-          form(action=`${_CC.config.base}admin-settings/edit/rename/${user._id}`, method='POST')
+          h2= lang('ADMIN_USER_EDIT_GROUPS')
+          p.is-marginless= lang('ADMIN_USER_EDIT_GROUPS_ADD_NEW_HEADER', user.displayName || user._id)
+          form(action=`${_CC.config.base}admin-settings/edit/${user._id}/groups`, method='POST')
             .field
-              label.label= lang('ADMIN_USER_EDIT_USERNAME')
+              label.label= lang('ADMIN_USER_EDIT_GROUPS_ADD_NEW_DISPLAY_NAME')
               .control.has-icons-left
-                input.input(type='text', name='newUsername', placeholder=user._id, value=user._id)
+                input.input(type='text', name='displayName', placeholder=lang('ADMIN_USER_EDIT_GROUPS_ADD_NEW_DISPLAY_NAME_PLACEHOLDER'))
                 span.icon.is-small.is-left
                   i.fas.fa-user
             .field
               .control
-                input.button.is-primary(type='submit' value=lang('ADMIN_USER_EDIT_CHANGE_USERNAME'))
+                input.button.is-primary(type='submit', value=lang('ADMIN_USER_EDIT_GROUPS_ADD_NEW'))
+
         .column.is-narrow
           h2= lang('ADMIN_USER_EDIT_ADMIN')
           //- Yes, ternary exists, but I think the code is cleaner with a more "naive" style :)
           //- p.is-marginless #{user._id} is #{user.admin ? '' : 'not '}an admin.
           //- vs.
           if user.admin
-            p.is-marginless= lang('ADMIN_USER_EDIT_ADMIN_ISADMIN', user._id)
+            p.is-marginless= lang('ADMIN_USER_EDIT_ADMIN_ISADMIN', user.displayName || user._id)
             form(action=`${_CC.config.base}admin-settings/edit/demote/${user._id}`, method='POST')
               .field
                 .control
@@ -59,43 +73,43 @@ block content
                   else
                     input.input.button(type='submit', value=lang('ADMIN_USER_EDIT_DEMOTE', user._id), style='margin-top: 1em;')
           else
-            p.is-marginless= lang('ADMIN_USER_EDIT_ADMIN_NOTADMIN', user._id)
+            p.is-marginless= lang('ADMIN_USER_EDIT_ADMIN_NOTADMIN', user.displayName || user._id)
             form(action=`${_CC.config.base}admin-settings/edit/promote/${user._id}`, method='POST')
               .field
                 .control
-                  input.input.button(type='submit', value=lang('ADMIN_USER_EDIT_PROMOTE', user._id), style='margin-top: 1em;')
-        if user._id !== req.user._id
-          .column.is-narrow
-            h2= lang('ADMIN_USER_EDIT_IMPERSONATE_HEADER')
-              form(action=`${_CC.config.base}admin-settings/edit/impersonate/${user._id}`, method='POST')
-                .field
-                  .control
-                    input.input.button.is-warning(type='submit', value=lang('ADMIN_USER_EDIT_IMPERSONATE_BUTTON', user._id), style='margin-top: 1em;')
-      h2(style='margin-bottom: 1em;')= lang('ADMIN_USER_EDIT_RESET_PASSWORD_HEADER')
-      if user.pwToken
-        - const resetLink = `${_CC.config.base}resetpw/${user.pwToken}`
-        p= lang('ADMIN_USER_EDIT_RESET_PASSWORD_HASLINK')
-          if user.pwExpiry > new Date().getTime()
-            span= lang('ADMIN_USER_EDIT_RESET_PASSWORD_HASLINK_EXPIRY_FUTURE', _CC.moment(user.pwExpiry).fromNow())
-          else
-            span.has-text-weight-bold.has-text-danger= lang('ADMIN_USER_EDIT_RESET_PASSWORD_HASLINK_EXPIRY_PAST', _CC.moment(user.pwExpiry).fromNow())
-        a(href=resetLink)= resetLink
-        .columns
-          .column.is-narrow
-            form(method='POST', action=`${_CC.config.base}admin-settings/edit/resetpw/${user._id}`)
-              .field
-                .control
-                    input.button.is-primary(type='submit' value=lang('ADMIN_USER_EDIT_RESET_PASSWORD_LINK_REFRESH'))
-          .column.is-narrow
-            form(method='POST', action=`${_CC.config.base}admin-settings/edit/cancelresetpw/${user._id}`)
-              .field
-                .control
-                    input.button.is-info(type='submit' value=lang('ADMIN_USER_EDIT_RESET_PASSWORD_LINK_CANCEL'))
-      else
-        form(method='POST', action=`${_CC.config.base}admin-settings/edit/resetpw/${user._id}`)
-          .field
-            .control
-                input.button.is-danger(type='submit' value=lang('ADMIN_USER_EDIT_RESET_PASSWORD_LINK_CREATE'))
+                  input.input.button(type='submit', value=lang('ADMIN_USER_EDIT_PROMOTE', user.displayName || user._id), style='margin-top: 1em;')
+        //- if user._id !== req.user._id
+        //-   .column.is-narrow
+        //-     h2= lang('ADMIN_USER_EDIT_IMPERSONATE_HEADER')
+        //-       form(action=`${_CC.config.base}admin-settings/edit/impersonate/${user._id}`, method='POST')
+        //-         .field
+        //-           .control
+        //-             input.input.button.is-warning(type='submit', value=lang('ADMIN_USER_EDIT_IMPERSONATE_BUTTON', user._id), style='margin-top: 1em;')
+      //- h2(style='margin-bottom: 1em;')= lang('ADMIN_USER_EDIT_RESET_PASSWORD_HEADER')
+      //- if user.pwToken
+      //-   - const resetLink = `${_CC.config.base}resetpw/${user.pwToken}`
+      //-   p= lang('ADMIN_USER_EDIT_RESET_PASSWORD_HASLINK')
+      //-     if user.pwExpiry > new Date().getTime()
+      //-       span= lang('ADMIN_USER_EDIT_RESET_PASSWORD_HASLINK_EXPIRY_FUTURE', _CC.moment(user.pwExpiry).fromNow())
+      //-     else
+      //-       span.has-text-weight-bold.has-text-danger= lang('ADMIN_USER_EDIT_RESET_PASSWORD_HASLINK_EXPIRY_PAST', _CC.moment(user.pwExpiry).fromNow())
+      //-   a(href=resetLink)= resetLink
+      //-   .columns
+      //-     .column.is-narrow
+      //-       form(method='POST', action=`${_CC.config.base}admin-settings/edit/resetpw/${user._id}`)
+      //-         .field
+      //-           .control
+      //-               input.button.is-primary(type='submit' value=lang('ADMIN_USER_EDIT_RESET_PASSWORD_LINK_REFRESH'))
+      //-     .column.is-narrow
+      //-       form(method='POST', action=`${_CC.config.base}admin-settings/edit/cancelresetpw/${user._id}`)
+      //-         .field
+      //-           .control
+      //-               input.button.is-info(type='submit' value=lang('ADMIN_USER_EDIT_RESET_PASSWORD_LINK_CANCEL'))
+      //- else
+      //-   form(method='POST', action=`${_CC.config.base}admin-settings/edit/resetpw/${user._id}`)
+      //-     .field
+      //-       .control
+      //-           input.button.is-danger(type='submit' value=lang('ADMIN_USER_EDIT_RESET_PASSWORD_LINK_CREATE'))
     .column.is-narrow
       h2= lang('ADMIN_USER_EDIT_DELETE_HEADER')
       form(method='POST', action=`${_CC.config.base}admin-settings/edit/remove/${user._id}`)
@@ -104,4 +118,4 @@ block content
             if user.admin
               input.button.is-danger(disabled, type='submit' value=lang('ADMIN_USER_EDIT_DELETE_ADMIN'))
             else
-              input.button.is-danger(type='submit' value=lang('ADMIN_USER_EDIT_DELETE_USER', user._id))
+              input.button.is-danger(type='submit' value=lang('ADMIN_USER_EDIT_DELETE_USER', user.displayName || user._id))

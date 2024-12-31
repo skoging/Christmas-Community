@@ -1,6 +1,6 @@
 {
   "name": "christmas-community",
-  "version": "1.36.0",
+  "version": "1.37.0-dev.3",
   "description": "Christmas lists for communities",
   "type": "module",
   "main": "built/index.js",
@@ -10,13 +10,13 @@
     "dev": "nodemon --watch src -e ts,js --exec 'npm run build && node built/index.js'",
     "postinstall": "node postinstall.cjs",
     "build": "tsc",
-    "release": "docker buildx build . --platform linux/amd64,linux/arm64 -t wingysam/christmas-community -t wingysam/christmas-community:$(./node_modules/node-jq/bin/jq -r .version < package.json) --push"
+    "release": "docker buildx build . --platform linux/amd64,linux/arm64 -t skoging/christmas-community:$(./node_modules/node-jq/bin/jq -r .version < package.json) --push"
   },
   "author": "Wingysam <wingysam+git@gmail.com>",
   "license": "AGPL-3.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wingysam/Christmas-Community"
+    "url": "https://github.com/skoging/Christmas-Community"
   },
   "dependencies": {
     "bcrypt-nodejs": "^0.0.3",
@@ -33,6 +33,7 @@
     "express-session": "^1.17.2",
     "get-product-name": "1",
     "jsdom": "^17.0.0",
+    "jwks-rsa": "^3.1.0",
     "lodash": "^4.17.20",
     "marked": "^3.0.3",
     "memdown": "^6.0.0",
@@ -40,8 +41,10 @@
     "moment": "^2.29.1",
     "nanoid": "^3.1.25",
     "node-fetch": "^3.3.2",
+    "openid-client": "^6.1.7",
     "passport": "^0.4.0",
     "passport-google-oidc": "^0.1.0",
+    "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "pouchdb": "^7.2.2",
     "pouchdb-find": "^9.0.0",

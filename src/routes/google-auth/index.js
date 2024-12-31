@@ -32,9 +32,9 @@ export default function ({ db }) {
 
   router.get('/unlink', async (req, res) => {
     try {
-      const doc = await db.get(req.session.passport.user)
+      const doc = await db.users.get(req.session.passport.user)
       delete doc.oauthConnections.google
-      await db.put(doc)
+      await db.users.put(doc)
       req.flash('success', _CC.lang('LOGIN_SSO_UNLINK_SUCCESS'))
     } catch (err) {
       req.flash('error', _CC.lang('LOGIN_SSO_UNLINK_FAILURE'))

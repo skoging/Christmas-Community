@@ -16,7 +16,7 @@ export default function ({ db, ensurePfp }) {
 
   router.get('/', verifyAuth(), (req, res) => {
     if (!req.user.admin) return res.redirect('/')
-    db.allDocs({ include_docs: true })
+    db.users.allDocs({ include_docs: true })
       .then(docs => {
         res.render('adminSettings', { title: _CC.lang('ADMIN_SETTINGS_HEADER'), users: docs.rows })
       })
@@ -44,7 +44,7 @@ export default function ({ db, ensurePfp }) {
         })
     }
 
-    await db.put({
+    await db.users.put({
       _id: username,
       admin: false,
       wishlist: [],
@@ -59,35 +59,38 @@ export default function ({ db, ensurePfp }) {
 
   router.get('/edit/:userToEdit', verifyAuth(), async (req, res) => {
     if (!req.user.admin) return res.redirect('/')
-    const doc = await db.get(req.params.userToEdit)
+    const doc = await db.users.get(req.params.userToEdit)
     delete doc.password
-    res.render('admin-user-edit', { user: doc })
+
+		const groupDocs = await db.groups.allDocs({ include_docs: true })
+
+    res.render('admin-user-edit', { user: doc, groups: groupDocs })
   })
 
   router.post('/edit/refresh-signup-token/:userToEdit', verifyAuth(), async (req, res) => {
     if (!req.user.admin) return res.redirect('/')
-    const doc = await db.get(req.params.userToEdit)
+    const doc = await db.users.get(req.params.userToEdit)
     doc.signupToken = nanoid(SECRET_TOKEN_LENGTH)
     doc.expiry = new Date().getTime() + SECRET_TOKEN_LIFETIME
-    await db.put(doc)
+    await db.users.put(doc)
     return res.redirect(`/admin-settings/edit/${req.params.userToEdit}`)
   })
 
   router.post('/edit/resetpw/:userToEdit', verifyAuth(), async (req, res) => {
     if (!req.user.admin) return res.redirect('/')
-    const doc = await db.get(req.params.userToEdit)
+    const doc = await db.users.get(req.params.userToEdit)
     doc.pwToken = nanoid(SECRET_TOKEN_LENGTH)
     doc.pwExpiry = new Date().getTime() + SECRET_TOKEN_LIFETIME
-    await db.put(doc)
+    await db.users.put(doc)
     return res.redirect(`/admin-settings/edit/${req.params.userToEdit}`)
   })
 
   router.post('/edit/cancelresetpw/:userToEdit', verifyAuth(), async (req, res) => {
     if (!req.user.admin) return res.redirect('/')
-    const doc = await db.get(req.params.userToEdit)
+    const doc = await db.users.get(req.params.userToEdit)
     delete doc.pwToken
     delete doc.pwExpiry
-    await db.put(doc)
+    await db.users.put(doc)
     return res.redirect(`/admin-settings/edit/${req.params.userToEdit}`)
   })
 
@@ -105,14 +108,14 @@ export default function ({ db, ensurePfp }) {
     const oldName = req.params.userToRename
     const newName = req.body.newUsername
 
-    const userDoc = await db.get(oldName)
+    const userDoc = await db.users.get(oldName)
     userDoc._id = newName
     delete userDoc._rev
     try {
-      await db.put(userDoc)
+      await db.users.put(userDoc)
       try {
         const usersBulk = []
-        const users = (await db.allDocs({ include_docs: true })).rows
+        const users = (await db.users.allDocs({ include_docs: true })).rows
         for (const { doc: user } of users) {
           for (const item of user.wishlist) {
             if (item.pledgedBy === oldName) item.pledgedBy = newName
@@ -121,8 +124,8 @@ export default function ({ db, ensurePfp }) {
           usersBulk.push(user)
         }
 
-        await db.bulkDocs(usersBulk)
-        await db.remove(await db.get(oldName))
+        await db.users.bulkDocs(usersBulk)
+        await db.users.remove(await db.users.get(oldName))
 
         await _CC.wishlistManager.clearCache()
 
@@ -130,7 +133,7 @@ export default function ({ db, ensurePfp }) {
         return res.redirect(`/wishlist/${newName}`)
       } catch (error) {
         console.log(error, error.stack)
-        await db.remove(await db.get(newName))
+        await db.users.remove(await db.users.get(newName))
         throw error
       }
     } catch (error) {
@@ -153,7 +156,7 @@ export default function ({ db, ensurePfp }) {
 
   router.post('/edit/promote/:userToPromote', verifyAuth(), async (req, res) => {
     if (!req.user.admin) return res.redirect('/')
-    const user = await db.get(req.params.userToPromote)
+    const user = await db.users.get(req.params.userToPromote)
     if (!user) {
       req.flash('error', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_PROMOTE_DEMOTE_NOT_FOUND'))
       return res.redirect(`/admin-settings/edit/${req.params.userToPromote}`)
@@ -164,9 +167,9 @@ export default function ({ db, ensurePfp }) {
     }
 
     user.admin = true
-    await db.put(user)
+    await db.users.put(user)
 
-    req.flash('success', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_PROMOTE_SUCCESS', user._id))
+    req.flash('success', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_PROMOTE_SUCCESS', user.displayName ?? user._id))
     return res.redirect(`/admin-settings/edit/${req.params.userToPromote}`)
   })
 
@@ -177,7 +180,7 @@ export default function ({ db, ensurePfp }) {
       return res.redirect(`/admin-settings/edit/${req.params.userToDemote}`)
     }
 
-    const user = await db.get(req.params.userToDemote)
+    const user = await db.users.get(req.params.userToDemote)
 
     if (!user) {
       req.flash('error', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_PROMOTE_DEMOTE_NOT_FOUND'))
@@ -189,24 +192,81 @@ export default function ({ db, ensurePfp }) {
     }
 
     user.admin = false
-    await db.put(user)
+    await db.users.put(user)
 
-    req.flash('success', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_DEMOTE_SUCCESS', user._id))
+    req.flash('success', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_DEMOTE_SUCCESS', user.displayName ?? user._id))
     return res.redirect(`/admin-settings/edit/${req.params.userToDemote}`)
+  })
+
+  router.post('/edit/:userToEdit/groups', verifyAuth(), async (req, res) => {
+    if (!req.user.admin) return res.redirect('/')
+    const user = await db.users.get(req.params.userToEdit)
+    if (!user) {
+      req.flash('error', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_GROUP_ADD_REMOVE_USER_NOT_FOUND'))
+      return res.redirect(`/admin-settings/edit/${req.params.userToEdit}`)
+    }
+
+		const group = {
+			_id: nanoid(),
+			displayName: req.body.displayName
+		}
+		await db.groups.put(group)
+
+    user.groups = [...new Set([...user.groups ?? [], group._id])]
+    await db.users.put(user)
+
+    req.flash('success', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_GROUP_ADD_SUCCESS', user.displayName ?? user._id, group.displayName))
+    return res.redirect(`/admin-settings/edit/${req.params.userToEdit}`)
+  })
+
+  router.put('/edit/:userToEdit/groups/:groupId', verifyAuth(), async (req, res) => {
+    if (!req.user.admin) return res.redirect('/')
+    const user = await db.users.get(req.params.userToEdit)
+    if (!user) {
+      req.flash('error', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_GROUP_ADD_REMOVE_USER_NOT_FOUND'))
+      return res.redirect(`/admin-settings/edit/${req.params.userToEdit}`)
+    }
+
+		var group = await db.groups.get(groupId)
+		if (!group) {
+      req.flash('error', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_GROUP_ADD_REMOVE_GROUP_NOT_FOUND'))
+      return res.redirect(`/admin-settings/edit/${req.params.userToEdit}`)
+    }
+
+    user.groups = [...new Set([...user.groups, group._id])]
+    await db.users.put(user)
+
+    req.flash('success', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_GROUP_ADD_SUCCESS', user.displayName ?? user._id, group.displayName))
+    return res.redirect(`/admin-settings/edit/${req.params.userToEdit}`)
+  })
+
+  router.delete('/edit/:userToEdit/groups/:groupId', verifyAuth(), async (req, res) => {
+    if (!req.user.admin) return res.redirect('/')
+    const user = await db.users.get(req.params.userToEdit)
+    if (!user) {
+      req.flash('error', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_GROUP_ADD_REMOVE_USER_NOT_FOUND'))
+      return res.redirect(`/admin-settings/edit/${req.params.userToEdit}`)
+    }
+
+    user.groups = user.groups.filter(g => g !== groupId)
+    await db.users.put(user)
+
+    req.flash('success', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_GROUP_REMOVE_SUCCESS', user.displayName ?? user._id, group.displayName))
+    return res.redirect(`/admin-settings/edit/${req.params.userToEdit}`)
   })
 
   router.post('/edit/remove/:userToRemove', verifyAuth(), async (req, res) => {
     try {
       if (!req.user.admin) return res.redirect('/')
 
-      const userToRemove = await db.get(req.params.userToRemove)
+      const userToRemove = await db.users.get(req.params.userToRemove)
       if (userToRemove.admin) {
         req.flash('error', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_DELETE_FAIL_ADMIN'))
         return res.redirect('/admin-settings')
       }
-      await db.remove(userToRemove)
+      await db.users.remove(userToRemove)
 
-      const { rows } = await db.allDocs()
+      const { rows } = await db.users.allDocs()
       for (const row of rows) {
         const wishlist = await _CC.wishlistManager.get(row.id)
         for (const item of wishlist.items) {
@@ -218,7 +278,7 @@ export default function ({ db, ensurePfp }) {
         }
       }
 
-      req.flash('success', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_DELETE_SUCCESS', req.params.userToRemove))
+      req.flash('success', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_DELETE_SUCCESS', userToRemove.displayName ?? userToRemove._id))
     } catch (error) {
       req.flash('error', `${error}`)
     }
@@ -235,12 +295,12 @@ export default function ({ db, ensurePfp }) {
     if (!req.user.admin) return res.redirect('/')
 
     const usersBulk = []
-    const { rows: users } = await db.allDocs({ include_docs: true })
+    const { rows: users } = await db.users.allDocs({ include_docs: true })
     for (const { doc: user } of users) {
       user.wishlist = []
       usersBulk.push(user)
     }
-    await db.bulkDocs(usersBulk)
+    await db.users.bulkDocs(usersBulk)
 
     await _CC.wishlistManager.clearCache()
 

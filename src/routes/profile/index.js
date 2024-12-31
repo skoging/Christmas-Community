@@ -7,13 +7,13 @@ export default function ({ db, config, ensurePfp }) {
 
   router.get('/', verifyAuth(), async (req, res) => {
     await ensurePfp(req.user._id)
-    res.render('profile', { title: _CC.lang('PROFILE_TITLE', req.user._id) })
+    res.render('profile', { title: _CC.lang('PROFILE_TITLE', req.user.displayName ?? req.user._id) })
   })
 
   router.post('/pfp', verifyAuth(), async (req, res) => {
     if (config.pfp) {
       req.user.pfp = req.body.image
-      await db.put(req.user)
+      await db.users.put(req.user)
       if (!req.user.pfp) await ensurePfp(req.user._id)
       req.flash('success', _CC.lang('PROFILE_SAVE_PFP_SUCCESS'))
     } else {
@@ -36,7 +36,7 @@ export default function ({ db, config, ensurePfp }) {
       if (!INFO_KEYS.includes(k)) continue
       req.user.info[k] = v
     }
-    await db.put(req.user)
+    await db.users.put(req.user)
     req.flash('success', _CC.lang('PROFILE_UPDATE_INFO_SUCCESS'))
     res.redirect('/profile')
   })
@@ -59,10 +59,10 @@ export default function ({ db, config, ensurePfp }) {
       if (correct) {
         bcrypt.hash(req.body.newPassword, null, null, (err, hash) => {
           if (err) throw err
-          db.get(req.user._id)
+          db.users.get(req.user._id)
             .then(doc => {
               doc.password = hash
-              db.put(doc)
+              db.users.put(doc)
                 .then(() => {
                   req.flash('success', _CC.lang('PROFILE_PASSWORD_SUCCESS'))
                   res.redirect('/profile/password')

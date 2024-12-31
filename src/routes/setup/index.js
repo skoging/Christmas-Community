@@ -6,7 +6,7 @@ export default function ({ db, ensurePfp }) {
 
   router.get('/',
     async (req, res) => {
-      const dbInfo = await db.info()
+      const dbInfo = await db.users.info()
       if (dbInfo.doc_count === 0) {
         res.render('setup', { title: _CC.lang('SETUP_HEADER') })
       } else {
@@ -17,13 +17,13 @@ export default function ({ db, ensurePfp }) {
 
   router.post('/',
     async (req, res) => {
-      const dbInfo = await db.info()
+      const dbInfo = await db.users.info()
       if (dbInfo.doc_count === 0) {
         const username = req.body.adminUsername.trim()
         await new Promise((resolve, reject) => {
           bcrypt.hash(req.body.adminPassword, null, null, (err, adminPasswordHash) => {
             if (err) throw err
-            db.put({
+            db.users.put({
               _id: username,
               password: adminPasswordHash,
               admin: true,

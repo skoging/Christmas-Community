@@ -18,7 +18,7 @@ import Google from './google-auth/index.js'
 export default ({ db, config, ensurePfp }) => {
 
   ;(async () => {
-    const { rows } = await db.allDocs({ include_docs: true })
+    const { rows } = await db.users.allDocs({ include_docs: true })
     for (const row of rows) {
       await ensurePfp(row.id)
     }
@@ -30,7 +30,7 @@ export default ({ db, config, ensurePfp }) => {
 
   router.get('/',
     async (req, res, next) => {
-      const dbInfo = await db.info()
+      const dbInfo = await db.users.info()
       if (dbInfo.doc_count === 0) {
         res.redirect('/setup')
       } else {

@@ -40,21 +40,24 @@ app.use((req, res, next) => {
   next()
 })
 
-const db = _CC.usersDb
+const db = {
+	users: _CC.usersDb,
+	groups: _CC.groupsDb
+}
 
 async function ensurePfp(username) {
 	if (!config.pfp) return
-	const user = await db.get(username)
+	const user = await db.users.get(username)
 	if (user.pfp) return
 
-	const { rows } = await db.allDocs({ include_docs: true })
+	const { rows } = await db.users.allDocs({ include_docs: true })
 
 	const unfilteredPool = await fs.readdir('src/static/img/default-pfps')
 	const filteredPool = unfilteredPool.filter(file => !rows.find(row => row.doc.pfp === `${_CC.config.base}img/default-pfps/${file}`))
 	const pool = filteredPool.length ? filteredPool : unfilteredPool
 
 	user.pfp = `${_CC.config.base}img/default-pfps/${_CC._.sample(pool)}`
-	await db.put(user)
+	await db.users.put(user)
 }
 
 if (config.cfZeroAuthSSOEnabled) {
@@ -75,7 +78,7 @@ if (config.cfZeroAuthSSOEnabled) {
 		
     try {
       // Try to get the user from the database
-      const user = await db.get(sub)
+      const user = await db.users.get(sub)
 			return done(null, user)
     } catch (err) {
       // Handle other errors, including missing user
@@ -83,7 +86,7 @@ if (config.cfZeroAuthSSOEnabled) {
 
 				try {
 					// Add new user if they don't exist
-					await db.put({
+					await db.users.put({
 						_id: sub,
 						admin: email === config.cfSetupAdminEmail,
 						wishlist: []
@@ -92,7 +95,7 @@ if (config.cfZeroAuthSSOEnabled) {
 					await ensurePfp(sub)
 
 					// Retrieve the newly created user
-					const newUser = await db.get(sub)
+					const newUser = await db.users.get(sub)
 					return done(null, newUser);
 				} catch (putErr) {
 					// Handle errors while adding a new user
@@ -109,7 +112,7 @@ if (config.localLoginEnabled) {
 	passport.use('local', new LocalStrategy(
 		(username, password, done) => {
 			username = username.trim()
-			db.get(username)
+			db.users.get(username)
 				.then((doc: any) => {
 					bcrypt.compare(password, doc.password, (err, correct) => {
 						if (err) return done(err)
@@ -135,7 +138,7 @@ if (config.googleSSOEnabled) {
     const googleId = profile.id.trim() // Get Google id
     try {
       // Try to get the user from the database
-      const docs = await db.find({
+      const docs = await db.users.find({
         selector: { 'oauthConnections.google': { $eq: googleId } }
       })
       if (docs.docs.length === 1) {
@@ -163,7 +166,7 @@ if (config.googleSSOEnabled) {
   async (req, issuer, profile, done) => {
     const googleId = profile.id.trim() // Get Google id
 
-    const docs = await db.find({
+    const docs = await db.users.find({
       selector: { 'oauthConnections.google': { $eq: googleId } }
     })
     if (docs.docs.length === 1) {
@@ -171,10 +174,10 @@ if (config.googleSSOEnabled) {
       return done(null)
     } else {
       try {
-        const doc = await db.get(req.session.passport.user)
+        const doc = await db.users.get(req.session.passport.user)
         doc.oauthConnections ??= {}
         doc.oauthConnections.google = googleId
-        await db.put(doc)
+        await db.users.put(doc)
         req.flash('success', _CC.lang('LOGIN_SSO_LINK_SUCCESS'))
         return done(null, doc)
       } catch (err) {
@@ -189,7 +192,7 @@ if (config.googleSSOEnabled) {
 passport.serializeUser((user, callback) => callback(null, user._id))
 
 passport.deserializeUser((user, callback) => {
-  db.get(user)
+  db.users.get(user)
     .then(dbUser => callback(null, dbUser))
     .catch(() => callback(null, null))
 })
@@ -241,9 +244,9 @@ if (config.cfZeroAuthSSOEnabled) {
 			})
 			const profile = await response.json()
 
-			const doc = await db.get(req["user"]._id)
+			const doc = await db.users.get(req["user"]._id)
 			doc.displayName = profile.name
-      await db.put(doc)
+      await db.users.put(doc)
 		}
 		next()
 	})

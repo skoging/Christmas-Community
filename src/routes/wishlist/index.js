@@ -20,10 +20,10 @@ const totals = wishlist => {
 }
 
 const groupIntersects = (groups, other) => {
-	if (groups?.length === 0 || other?.length === 0)
-		return false
-	
-	return groups.some(g => other.includes(g))
+	if (groups?.length > 0 && other?.length > 0)
+		return groups.some(g => other.includes(g))
+
+	return false
 }
 
 export default function (db) {

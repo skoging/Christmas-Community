@@ -7,7 +7,7 @@ export default function ({ db, config, ensurePfp }) {
 
   router.get('/', verifyAuth(), async (req, res) => {
     await ensurePfp(req.user._id)
-    res.render('profile', { title: _CC.lang('PROFILE_TITLE', req.user._id) })
+    res.render('profile', { title: _CC.lang('PROFILE_TITLE', req.user.displayName ?? req.user._id) })
   })
 
   router.post('/pfp', verifyAuth(), async (req, res) => {

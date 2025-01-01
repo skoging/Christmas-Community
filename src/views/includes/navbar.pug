@@ -26,14 +26,14 @@ nav.navbar.is-fixed-top(role='navigation', aria-label='main navigation',style='b
             a.button.is-primary(href=`${_CC.config.base}login`)= lang('NAVBAR_LOGIN')
         else
           .navbar-item.has-dropdown.is-hoverable
-            a.navbar-link= req.user._id
+            a.navbar-link= req.user.displayName || req.user._id
             .navbar-dropdown
               +navBarLink(`${_CC.config.base}wishlist/${req.user._id}`, lang('NAVBAR_WISHLIST'))
               +navBarLink(`${_CC.config.base}profile`, lang('NAVBAR_PROFILE'))
               if req.user.admin
                 +navBarLink(`${_CC.config.base}admin-settings`, lang('NAVBAR_ADMIN'))
-              hr.navbar-divider
-              .navbar-item
-                form#logoutForm(action=`${_CC.config.base}logout`, method='POST')
-                  button.button.is-warning(type='submit')= lang('NAVBAR_LOGOUT')
+              //- hr.navbar-divider
+              //- .navbar-item
+              //-   form#logoutForm(action=`${_CC.config.base}logout`, method='POST')
+              //-     button.button.is-warning(type='submit')= lang('NAVBAR_LOGOUT')
   script(src=`${_CC.config.base}js/nav.js`)

@@ -4,17 +4,20 @@ import './CC.js'
 import PouchSession from 'session-pouchdb-store'
 import { Strategy as LocalStrategy } from 'passport-local'
 import GoogleStrategy from 'passport-google-oidc'
+import PassportJwt from 'passport-jwt'
 import session from 'express-session'
 import bcrypt from 'bcrypt-nodejs'
 import flash from 'connect-flash'
 import passport from 'passport'
 import express from 'express'
 import path from 'path'
+import fs from 'fs/promises'
 import mkdirp from 'mkdirp'
 import BodyParser from 'body-parser'
 import CookieParser from 'cookie-parser'
 import ExpressPouchDB from 'express-pouchdb'
 import { customAlphabet } from 'nanoid'
+import jwksRsa from 'jwks-rsa'
 
 import config from './config/index.js'
 import PouchDB from './PouchDB.js'
@@ -33,29 +36,94 @@ app.set('trust proxy', config.trustProxy)
 
 // https://github.com/Wingysam/Christmas-Community/issues/17#issuecomment-1824863081
 app.use((req, res, next) => {
-  if (!req.session?.passport || Object.keys(req.session?.passport)?.length === 0) { res.clearCookie('christmas_community.connect.sid', { path: '/wishlist' }) }
+  if (!req["session"]?.passport || Object.keys(req["session"]?.passport)?.length === 0) { res.clearCookie('christmas_community.connect.sid', { path: '/wishlist' }) }
   next()
 })
 
 const db = _CC.usersDb
 
-passport.use('local', new LocalStrategy(
-  (username, password, done) => {
-    username = username.trim()
-    db.get(username)
-      .then((doc: any) => {
-        bcrypt.compare(password, doc.password, (err, correct) => {
-          if (err) return done(err)
-          if (!correct) return done(null, false, { message: _CC.lang('LOGIN_INCORRECT_PASSWORD') })
-          if (correct) return done(null, doc)
-        })
-      })
-      .catch(err => {
-        if (err.message === 'missing') return done(null, false, { message: _CC.lang('LOGIN_INCORRECT_USERNAME') })
-        return done(err)
-      })
-  }
-))
+async function ensurePfp(username) {
+	if (!config.pfp) return
+	const user = await db.get(username)
+	if (user.pfp) return
+
+	const { rows } = await db.allDocs({ include_docs: true })
+
+	const unfilteredPool = await fs.readdir('src/static/img/default-pfps')
+	const filteredPool = unfilteredPool.filter(file => !rows.find(row => row.doc.pfp === `${_CC.config.base}img/default-pfps/${file}`))
+	const pool = filteredPool.length ? filteredPool : unfilteredPool
+
+	user.pfp = `${_CC.config.base}img/default-pfps/${_CC._.sample(pool)}`
+	await db.put(user)
+}
+
+if (config.cfZeroAuthSSOEnabled) {
+	passport.use('cf_jwt', new PassportJwt.Strategy({
+    // Dynamically provide a signing key based on the kid in the header and the signing keys provided by the JWKS endpoint.
+    secretOrKeyProvider: jwksRsa.passportJwtSecret({
+      cache: true,
+      rateLimit: true,
+      jwksRequestsPerMinute: 5,
+      jwksUri: `https://${config.cfTeamName}.cloudflareaccess.com/cdn-cgi/access/certs`,
+    }),
+		jwtFromRequest: PassportJwt.ExtractJwt.fromHeader('cf-access-jwt-assertion'),
+		audience: config.cfAppAudience,
+	},
+	async (jwt_payload, done) => {
+		const email = jwt_payload.email
+		const sub = jwt_payload.sub
+		
+    try {
+      // Try to get the user from the database
+      const user = await db.get(sub)
+			return done(null, user)
+    } catch (err) {
+      // Handle other errors, including missing user
+      if (err.message === 'missing') {
+
+				try {
+					// Add new user if they don't exist
+					await db.put({
+						_id: sub,
+						admin: email === config.cfSetupAdminEmail,
+						wishlist: []
+					})
+
+					await ensurePfp(sub)
+
+					// Retrieve the newly created user
+					const newUser = await db.get(sub)
+					return done(null, newUser);
+				} catch (putErr) {
+					// Handle errors while adding a new user
+					console.log(putErr)
+					return done(null, false, { message: putErr.message })
+				}
+      }
+      return done(err)
+    }
+	}))
+}
+
+if (config.localLoginEnabled) {
+	passport.use('local', new LocalStrategy(
+		(username, password, done) => {
+			username = username.trim()
+			db.get(username)
+				.then((doc: any) => {
+					bcrypt.compare(password, doc.password, (err, correct) => {
+						if (err) return done(err)
+						if (!correct) return done(null, false, { message: _CC.lang('LOGIN_INCORRECT_PASSWORD') })
+						if (correct) return done(null, doc)
+					})
+				})
+				.catch(err => {
+					if (err.message === 'missing') return done(null, false, { message: _CC.lang('LOGIN_INCORRECT_USERNAME') })
+					return done(err)
+				})
+		}
+	))
+}
 
 if (config.googleSSOEnabled) {
   passport.use('google-login', new GoogleStrategy({
@@ -164,6 +232,23 @@ app.use(flash())
 app.use(passport.initialize())
 app.use(passport.session())
 
+if (config.cfZeroAuthSSOEnabled) {
+	app.use(passport.authenticate('cf_jwt', { session: false }))
+	app.use(async (req, res, next) => {
+		if (req["user"].displayName == null) {
+			const response = await fetch(`https://${config.cfTeamName}.cloudflareaccess.com/cdn-cgi/access/get-identity`, {
+				headers: { cookie: `CF_Authorization=${req.headers["cf-access-jwt-assertion"]}` }
+			})
+			const profile = await response.json()
+
+			const doc = await db.get(req["user"]._id)
+			doc.displayName = profile.name
+      await db.put(doc)
+		}
+		next()
+	})
+}
+
 app.use((await import('./middlewares/locals.js')).default)
 
 app.use((req, res, next) => {
@@ -173,7 +258,7 @@ app.use((req, res, next) => {
 
 app.set('view engine', 'pug')
 app.set('views', path.resolve('./src/views'))
-app.use(config.base, (await import('./routes/index.js')).default({ db, config }))
+app.use(config.base, (await import('./routes/index.js')).default({ db, config, ensurePfp }))
 
 app.listen(config.port, () => { logger.success('express', `Express server started on port ${config.port}!`) })
 

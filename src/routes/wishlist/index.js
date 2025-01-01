@@ -60,10 +60,17 @@ export default function (db) {
         }
       }
 
+			const userDocs = await db.allDocs({ include_docs: true })
+			var itemsWithAddedByDisplayName = items
+				.map(i => ({ 
+					...i,
+					addedByDisplayName: userDocs.rows.find(d => d.id === i.addedBy )?.doc.displayName
+				}))
+
       res.render('wishlist', {
-        title: _CC.lang('WISHLIST_TITLE', wishlist.username),
-        name: wishlist.username,
-        items,
+        title: _CC.lang('WISHLIST_TITLE', wishlist.title),
+        name: wishlist.title,
+        items: itemsWithAddedByDisplayName,
         compiledNotes,
         sharedInfo: wishlist.doc?.info ?? {}
       })
@@ -190,7 +197,7 @@ export default function (db) {
     try {
       const wishlist = await wishlistManager.get(req.params.user)
       const item = await wishlist.get(req.params.id)
-      res.render('note', { item })
+      res.render('note', { item, wishlistTitle: wishlist.title })
     } catch (error) {
       req.flash('error', `${error}`)
       res.redirect(`/wishlist/${req.params.user}`)

@@ -45,6 +45,33 @@ block content
         //-       .control
         //-         input.button.is-primary(type='submit' value=lang('ADMIN_USER_EDIT_CHANGE_USERNAME'))
         .column.is-narrow
+          h2= lang('ADMIN_USER_EDIT_GROUPS')
+          each group in groups
+            span.is-size-6.inline= group.displayName
+            if user.groups.includes(group._id)
+              form(action=`${_CC.config.base}admin-settings/edit/${user._id}/remove-group/${group._id}`, method='POST')
+                .field
+                  .control
+                    input.button(type='submit', value=lang('ADMIN_USER_EDIT_GROUPS_REMOVE'))
+            else
+              form(action=`${_CC.config.base}admin-settings/edit/${user._id}/add-group/${group._id}`, method='POST')
+                .field
+                  .control
+                    input.button(type='submit', value=lang('ADMIN_USER_EDIT_GROUPS_ADD'))
+            br
+          p.is-marginless= lang('ADMIN_USER_EDIT_GROUPS_CREATE_HEADER', user.displayName || user._id)
+          form(action=`${_CC.config.base}admin-settings/edit/${user._id}/create-and-add-group`, method='POST')
+            .field
+              label.label= lang('ADMIN_USER_EDIT_GROUPS_CREATE_DISPLAY_NAME')
+              .control.has-icons-left
+                input.input(type='text', name='displayName', placeholder=lang('ADMIN_USER_EDIT_GROUPS_CREATE_DISPLAY_NAME_PLACEHOLDER'))
+                span.icon.is-small.is-left
+                  i.fas.fa-user
+            .field
+              .control
+                input.button.is-primary(type='submit', value=lang('ADMIN_USER_EDIT_GROUPS_CREATE'))
+
+        .column.is-narrow
           h2= lang('ADMIN_USER_EDIT_ADMIN')
           //- Yes, ternary exists, but I think the code is cleaner with a more "naive" style :)
           //- p.is-marginless #{user._id} is #{user.admin ? '' : 'not '}an admin.

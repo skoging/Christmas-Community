@@ -1,7 +1,7 @@
 extends layout.pug
 
 block content
-  a(href='..') <i class="fas fa-arrow-left"></i> #{lang('NOTE_BACK', req.params.user)}
+  a(href='..') <i class="fas fa-arrow-left"></i> #{lang('NOTE_BACK', wishlistTitle)}
   form(id='refreshform', method='POST', action=`${_CC.config.base}wishlist/${req.params.user}/refresh/${req.params.id}`)
   form.inline(method='POST', action=`${_CC.config.base}wishlist/${req.params.user}/note/${req.params.id}`)
     .columns

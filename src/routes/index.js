@@ -1,7 +1,6 @@
 import publicRoute from '../middlewares/publicRoute.js'
 import express from 'express'
 import path from 'path'
-import fs from 'fs/promises'
 
 import Api from './api/index.js'
 import Setup from './setup/index.js'
@@ -16,21 +15,7 @@ import AdminSettings from './adminSettings/index.js'
 import ManifestJson from './manifest.json/index.js'
 import Google from './google-auth/index.js'
 
-export default ({ db, config }) => {
-  async function ensurePfp (username) {
-    if (!config.pfp) return
-    const user = await db.get(username)
-    if (user.pfp) return
-
-    const { rows } = await db.allDocs({ include_docs: true })
-
-    const unfilteredPool = await fs.readdir('src/static/img/default-pfps')
-    const filteredPool = unfilteredPool.filter(file => !rows.find(row => row.doc.pfp === `${_CC.config.base}img/default-pfps/${file}`))
-    const pool = filteredPool.length ? filteredPool : unfilteredPool
-
-    user.pfp = `${_CC.config.base}img/default-pfps/${_CC._.sample(pool)}`
-    await db.put(user)
-  }
+export default ({ db, config, ensurePfp }) => {
 
   ;(async () => {
     const { rows } = await db.allDocs({ include_docs: true })

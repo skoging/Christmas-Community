@@ -19,6 +19,7 @@ export class Wishlist {
       throw new Error(_CC.lang('WISHLIST_FETCH_FAIL'))
     }
     this.items = this.doc.wishlist
+		this.title = this.doc.displayName ?? this.username
   }
 
   async save () {

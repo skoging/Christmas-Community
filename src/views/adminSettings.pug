@@ -3,25 +3,25 @@ extends layout.pug
 block content
   h2= lang('ADMIN_SETTINGS_USERS_HEADER')
   each user in users
-    span.is-size-6.inline= user.id
+    span.is-size-6.inline= user.doc.displayName || user.id
     a(href=`${_CC.config.base}admin-settings/edit/${user.id}`)
       span.is-size-7.icon.has-text-info
         i.fas.fa-edit
       span.is-sr-only
         = lang('ADMIN_SETTINGS_USERS_EDIT')
     br
-  h3= lang('ADMIN_SETTINGS_USERS_ADD_HEADER')
-  form(action=`${_CC.config.base}admin-settings/add`, method='POST')
-    .field
-      p.has-text-danger#error-label= add_user_error
-      label.label= lang('ADMIN_SETTINGS_USERS_ADD_USERNAME')
-      .control.has-icons-left
-        input.input(type='text', name='newUserUsername', placeholder=lang('ADMIN_SETTINGS_USERS_ADD_PLACEHOLDER'))
-        span.icon.is-small.is-left
-          i.fas.fa-user
-    .field
-      .control
-        input.button.is-primary(type='submit' value=lang('ADMIN_SETTINGS_USERS_ADD_BUTTON'))
+  //- h3= lang('ADMIN_SETTINGS_USERS_ADD_HEADER')
+  //- form(action=`${_CC.config.base}admin-settings/add`, method='POST')
+  //-   .field
+  //-     p.has-text-danger#error-label= add_user_error
+  //-     label.label= lang('ADMIN_SETTINGS_USERS_ADD_USERNAME')
+  //-     .control.has-icons-left
+  //-       input.input(type='text', name='newUserUsername', placeholder=lang('ADMIN_SETTINGS_USERS_ADD_PLACEHOLDER'))
+  //-       span.icon.is-small.is-left
+  //-         i.fas.fa-user
+  //-   .field
+  //-     .control
+  //-       input.button.is-primary(type='submit' value=lang('ADMIN_SETTINGS_USERS_ADD_BUTTON'))
   h3= lang('ADMIN_SETTINGS_CLEARDB_HEADER')
   p!= lang('ADMIN_SETTINGS_CLEARDB_DESCRIPTION')
   a.button.is-danger(href=`${_CC.config.base}admin-settings/clear-wishlists`)= lang('ADMIN_SETTINGS_CLEARDB_BUTTON')

@@ -166,7 +166,7 @@ export default function ({ db, ensurePfp }) {
     user.admin = true
     await db.put(user)
 
-    req.flash('success', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_PROMOTE_SUCCESS', user._id))
+    req.flash('success', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_PROMOTE_SUCCESS', user.displayName ?? user._id))
     return res.redirect(`/admin-settings/edit/${req.params.userToPromote}`)
   })
 
@@ -191,7 +191,7 @@ export default function ({ db, ensurePfp }) {
     user.admin = false
     await db.put(user)
 
-    req.flash('success', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_DEMOTE_SUCCESS', user._id))
+    req.flash('success', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_DEMOTE_SUCCESS', user.displayName ?? user._id))
     return res.redirect(`/admin-settings/edit/${req.params.userToDemote}`)
   })
 
@@ -218,7 +218,7 @@ export default function ({ db, ensurePfp }) {
         }
       }
 
-      req.flash('success', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_DELETE_SUCCESS', req.params.userToRemove))
+      req.flash('success', _CC.lang('ADMIN_SETTINGS_USERS_EDIT_DELETE_SUCCESS', userToRemove.displayName ?? userToRemove._id))
     } catch (error) {
       req.flash('error', `${error}`)
     }

@@ -48,6 +48,7 @@ export default function ({ db, ensurePfp }) {
       _id: username,
       admin: false,
       wishlist: [],
+			groups: [],
 
       signupToken: nanoid(SECRET_TOKEN_LENGTH),
       expiry: new Date().getTime() + SECRET_TOKEN_LIFETIME

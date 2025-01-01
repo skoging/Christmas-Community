@@ -89,7 +89,8 @@ if (config.cfZeroAuthSSOEnabled) {
 					await db.users.put({
 						_id: sub,
 						admin: email === config.cfSetupAdminEmail,
-						wishlist: []
+						wishlist: [],
+						groups: []
 					})
 
 					await ensurePfp(sub)

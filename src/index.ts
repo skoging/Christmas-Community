@@ -243,7 +243,22 @@ app.use((req, res, next) => {
   next()
 })
 
-app.get("/health", async (req, res) => {
+app.get("/health/live", async (req, res) => {
+	const healthcheck = {
+		uptime: process.uptime(),
+		message: 'OK',
+		timestamp: Date.now()
+	}
+
+	try {
+		return res.status(200).send(healthcheck)
+	} catch (e) {
+		healthcheck.message = `${e}`;
+		res.status(503).send(healthcheck)
+	}
+})
+
+app.get("/health/ready", async (req, res) => {
 	const healthcheck = {
 		uptime: process.uptime(),
 		message: 'OK',

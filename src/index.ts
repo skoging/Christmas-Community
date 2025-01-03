@@ -236,6 +236,30 @@ app.use(flash())
 app.use(passport.initialize())
 app.use(passport.session())
 
+app.use((await import('./middlewares/locals.js')).default)
+
+app.use((req, res, next) => {
+  logger.log('express', `${req.ip} - ${req.method} ${req.originalUrl}`)
+  next()
+})
+
+app.get("/health", async (req, res) => {
+	const healthcheck = {
+		uptime: process.uptime(),
+		message: 'OK',
+		timestamp: Date.now()
+	}
+
+	try {
+		await db.users.info()
+
+		return res.status(200).send(healthcheck)
+	} catch (e) {
+		healthcheck.message = `${e}`;
+		res.status(503).send(healthcheck)
+	}
+})
+
 if (config.cfZeroAuthSSOEnabled) {
 	app.use(passport.authenticate('cf_jwt', { session: false }))
 	app.use(async (req, res, next) => {
@@ -252,13 +276,6 @@ if (config.cfZeroAuthSSOEnabled) {
 		next()
 	})
 }
-
-app.use((await import('./middlewares/locals.js')).default)
-
-app.use((req, res, next) => {
-  logger.log('express', `${req.ip} - ${req.method} ${req.originalUrl}`)
-  next()
-})
 
 app.set('view engine', 'pug')
 app.set('views', path.resolve('./src/views'))

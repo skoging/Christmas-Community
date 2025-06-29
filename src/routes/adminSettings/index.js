@@ -1,6 +1,7 @@
 import verifyAuth from '../../middlewares/verifyAuth.js'
 import express from 'express'
 import { nanoid } from 'nanoid'
+import { addManager, removeManager, updateManagerLevel } from '../../helpers/managers.js'
 
 const SECRET_TOKEN_LENGTH = 32
 const SECRET_TOKEN_LIFETIME =
@@ -67,7 +68,11 @@ export default function ({ db, ensurePfp }) {
 			.allDocs({ include_docs: true })
 		const groups = groupsDocs.rows.map(r => r.doc)
 
-    res.render('admin-user-edit', { user: doc, groups })
+		const usersDocs = await db.users
+			.allDocs({ include_docs: true })
+		const users = usersDocs.rows
+
+    res.render('admin-user-edit', { user: doc, groups, users })
   })
 
   router.post('/edit/refresh-signup-token/:userToEdit', verifyAuth(), async (req, res) => {
@@ -315,6 +320,58 @@ export default function ({ db, ensurePfp }) {
 
     req.flash('success', _CC.lang('ADMIN_SETTINGS_CLEARDB_SUCCESS'))
     res.redirect('/admin-settings')
+  })
+
+  // Manager management routes
+  router.post('/edit/:userToEdit/add-manager', verifyAuth(), async (req, res) => {
+    if (!req.user.admin) return res.redirect('/')
+    
+    try {
+      const { managerId, level } = req.body
+      
+      if (!managerId || !level || !['full', 'collaborator'].includes(level)) {
+        req.flash('error', _CC.lang('ADMIN_SETTINGS_MANAGERS_INVALID_INPUT'))
+        return res.redirect(`/admin-settings/edit/${req.params.userToEdit}`)
+      }
+
+      await addManager(req.params.userToEdit, managerId, level, req.user._id)
+      req.flash('success', _CC.lang('ADMIN_SETTINGS_MANAGERS_ADD_SUCCESS', managerId, level))
+    } catch (error) {
+      req.flash('error', `${error.message}`)
+    }
+    
+    res.redirect(`/admin-settings/edit/${req.params.userToEdit}`)
+  })
+
+  router.post('/edit/:userToEdit/remove-manager/:managerId', verifyAuth(), async (req, res) => {
+    if (!req.user.admin) return res.redirect('/')
+    
+    try {
+      await removeManager(req.params.userToEdit, req.params.managerId)
+      req.flash('success', _CC.lang('ADMIN_SETTINGS_MANAGERS_REMOVE_SUCCESS', req.params.managerId))
+    } catch (error) {
+      req.flash('error', `${error.message}`)
+    }
+    
+    res.redirect(`/admin-settings/edit/${req.params.userToEdit}`)
+  })
+
+  router.post('/edit/:userToEdit/change-manager-level/:managerId/:newLevel', verifyAuth(), async (req, res) => {
+    if (!req.user.admin) return res.redirect('/')
+    
+    try {
+      if (!['full', 'collaborator'].includes(req.params.newLevel)) {
+        req.flash('error', _CC.lang('ADMIN_SETTINGS_MANAGERS_INVALID_LEVEL'))
+        return res.redirect(`/admin-settings/edit/${req.params.userToEdit}`)
+      }
+
+      await updateManagerLevel(req.params.userToEdit, req.params.managerId, req.params.newLevel)
+      req.flash('success', _CC.lang('ADMIN_SETTINGS_MANAGERS_LEVEL_CHANGE_SUCCESS', req.params.managerId, req.params.newLevel))
+    } catch (error) {
+      req.flash('error', `${error.message}`)
+    }
+    
+    res.redirect(`/admin-settings/edit/${req.params.userToEdit}`)
   })
 
   return router

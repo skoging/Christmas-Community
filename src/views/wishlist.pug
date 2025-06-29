@@ -41,7 +41,7 @@ block content
           th(style='width: 10%;')= lang('WISHLIST_PRICE')
           th= lang('WISHLIST_EDIT_ITEM')
           th= lang('WISHLIST_ADDED_BY')
-          if req.params.user === req.user._id
+          if req.params.user === req.user._id || canManageWishlist
             th= lang('WISHLIST_MOVE_TOP')
             th= lang('WISHLIST_MOVE_UP')
             th= lang('WISHLIST_MOVE_DOWN')
@@ -96,7 +96,7 @@ block content
                         span.icon
                           i.far.fa-edit
               td.ugc(data-label=lang('WISHLIST_ADDED_BY'))= item.addedByDisplayName || item.addedBy
-              if req.params.user === req.user._id
+              if req.params.user === req.user._id || canManageWishlist
                 td(data-label=lang('WISHLIST_MOVE_ITEM_TOP'))
                   form.topForm.inline(method='POST', action=`${_CC.config.base}wishlist/${req.params.user}/move/top/${item.id}`)
                     .field.inline
@@ -240,17 +240,17 @@ block content
                 .field.inline
                   .control.inline
                     input.inline.button(type='submit', value=lang('WISHLIST_EDIT_ITEM'))
-              if index !== 0 && req.user._id === req.params.user
+              if index !== 0 && (req.user._id === req.params.user || canManageWishlist)
                 form.inline(method='POST', action=`${_CC.config.base}wishlist/${req.params.user}/move/up/${item.id}`)
                   .field.inline
                     .control.inline
                       input.inline.button(type='submit' value=lang('WISHLIST_MOVE_ITEM_UP'))
-              if index !== items.length - 1 && req.user._id === req.params.user
+              if index !== items.length - 1 && (req.user._id === req.params.user || canManageWishlist)
                 form.inline(method='POST', action=`${_CC.config.base}wishlist/${req.params.user}/move/down/${item.id}`)
                   .field.inline
                     .control.inline
                       input.inline.button(type='submit' value=lang('WISHLIST_MOVE_ITEM_DOWN'))
-              if index !== items.length - 1 && req.user._id === req.params.user
+              if index !== items.length - 1 && (req.user._id === req.params.user || canManageWishlist)
                 form.inline(method='POST', action=`${_CC.config.base}wishlist/${req.params.user}/move/bottom/${item.id}`)
                   .field.inline
                     .control.inline

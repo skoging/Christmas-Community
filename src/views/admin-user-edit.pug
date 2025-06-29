@@ -125,7 +125,7 @@ block content
               .control
                 .select
                   select(name='managerId')
-                    each potentialManager in users.filter(u => u.doc._id !== user._id && !user.managers?.some(m => m.userId === u.doc._id))
+                    each potentialManager in users.filter(u => u.doc._id !== user._id && !(user.managers && user.managers.some(m => m.userId === u.doc._id)))
                       option(value=potentialManager.doc._id)= potentialManager.doc.displayName || potentialManager.doc._id
             .field
               label.label= lang('ADMIN_USER_EDIT_MANAGERS_LEVEL')

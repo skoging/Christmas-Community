@@ -1,4 +1,5 @@
 import Wishlist from './wishlist/index.js'
+import Managers from './managers/index.js'
 
 import verifyAuth from '../../middlewares/verifyAuth.js'
 import express from 'express'
@@ -15,6 +16,7 @@ export default function ({ db, config }) {
   })
 
   router.use('/wishlist', Wishlist({ db }))
+  router.use('/managers', Managers({ db }))
 
   return router
 }

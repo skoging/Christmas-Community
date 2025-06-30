@@ -1,4 +1,5 @@
 import express from 'express'
+import { canMoveItems } from '../../../helpers/managers.js'
 
 export default function ({ db }) {
   const router = express.Router()
@@ -11,7 +12,11 @@ export default function ({ db }) {
 
   router.post('/:user/:itemId/move/:direction', async (req, res) => {
     try {
-      if (req.user._id !== req.params.user) {
+      // Get the target user document to check manager permissions
+      const targetUser = await db.users.get(req.params.user)
+      
+      // Check if user can move items (owner or manager)
+      if (!canMoveItems(req.user, req.params.user, targetUser)) {
         throw new Error(_CC.lang('WISHLIST_MOVE_GUARD'))
       }
 

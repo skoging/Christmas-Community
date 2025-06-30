@@ -1,0 +1,74 @@
+extends layout.pug
+
+block title
+  h1(style="margin-bottom: 0;")
+    a(href=`${_CC.config.base}manage`) &lt;
+    | #{config.siteTitle}
+  p= lang('MANAGE_USER_DESCRIPTION', targetUser.displayName || targetUser._id)
+
+block content
+  .columns
+    .column
+      .box
+        h2= lang('MANAGE_USER_CURRENT_MANAGERS')
+        if targetUser.managers && targetUser.managers.length > 0
+          each manager in targetUser.managers
+            .field.is-grouped
+              .control
+                span.is-size-6= manager.userId
+                | &nbsp;(
+                span.tag(class=manager.level === 'full' ? 'is-danger' : 'is-info')= manager.level
+                | )
+              .control
+                form(action=`${_CC.config.base}manage/user/${targetUser._id}/remove-manager/${manager.userId}`, method='POST', style='display: inline;')
+                  input.button.is-small.is-danger(type='submit', value=lang('MANAGE_REMOVE_MANAGER'))
+              .control
+                if manager.level === 'full'
+                  form(action=`${_CC.config.base}manage/user/${targetUser._id}/change-manager-level/${manager.userId}/collaborator`, method='POST', style='display: inline;')
+                    input.button.is-small.is-info(type='submit', value=lang('MANAGE_MAKE_COLLABORATOR'))
+                else
+                  form(action=`${_CC.config.base}manage/user/${targetUser._id}/change-manager-level/${manager.userId}/full`, method='POST', style='display: inline;')
+                    input.button.is-small.is-danger(type='submit', value=lang('MANAGE_MAKE_FULL'))
+        else
+          p.is-size-7= lang('MANAGE_USER_NO_MANAGERS')
+
+      if availableUsers && availableUsers.length > 0
+        .box
+          h2= lang('MANAGE_USER_ADD_MANAGER')
+          form(action=`${_CC.config.base}manage/user/${targetUser._id}/add-manager`, method='POST')
+            .field
+              label.label= lang('MANAGE_USER_SELECT_USER')
+              .control
+                .select
+                  select(name='managerId', required)
+                    option(value='', disabled, selected)= lang('MANAGE_USER_SELECT_USER_PLACEHOLDER')
+                    each user in availableUsers
+                      option(value=user.doc._id)= user.doc.displayName || user.doc._id
+            .field
+              label.label= lang('MANAGE_USER_MANAGER_LEVEL')
+              .control
+                .select
+                  select(name='level', required)
+                    option(value='collaborator')= lang('MANAGE_USER_LEVEL_COLLABORATOR')
+                    option(value='full')= lang('MANAGE_USER_LEVEL_FULL')
+            .field
+              .control
+                input.button.is-primary(type='submit', value=lang('MANAGE_USER_ADD'))
+      else
+        .box
+          h2= lang('MANAGE_USER_ADD_MANAGER')
+          p.is-size-7= lang('MANAGE_USER_NO_AVAILABLE_USERS')
+
+    .column.is-narrow
+      .box
+        h3= lang('MANAGE_USER_ACTIONS')
+        a.button.is-link(href=`${_CC.config.base}wishlist/${targetUser._id}`)
+          span.icon
+            i.fas.fa-list
+          span= lang('MANAGE_VIEW_WISHLIST')
+        br
+        br
+        a.button.is-light(href=`${_CC.config.base}manage`)
+          span.icon
+            i.fas.fa-arrow-left
+          span= lang('MANAGE_BACK_TO_DASHBOARD') 

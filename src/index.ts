@@ -45,6 +45,10 @@ const db = {
 	groups: _CC.groupsDb
 }
 
+// Run startup migrations
+const { ensureManagersField } = await import('./migrations.js')
+await ensureManagersField()
+
 async function ensurePfp(username) {
 	if (!config.pfp) return
 	const user = await db.users.get(username)

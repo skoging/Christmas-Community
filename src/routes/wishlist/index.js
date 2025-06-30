@@ -5,6 +5,7 @@ import marked from 'marked'
 
 import publicRoute from '../../middlewares/publicRoute.js'
 import verifyAuth from '../../middlewares/verifyAuth.js'
+import { canMoveItems } from '../../helpers/managers.js'
 
 const window = new JSDOM('').window
 const DOMPurify = createDOMPurify(window)
@@ -84,12 +85,16 @@ export default function (db) {
 					addedByDisplayName: userDocs.rows.find(d => d.id === i.addedBy )?.doc.displayName
 				}))
 
+      // Check if current user can manage this wishlist
+      const canManage = canMoveItems(req.user, req.params.user, wishlist.doc)
+
       res.render('wishlist', {
         title: _CC.lang('WISHLIST_TITLE', wishlist.title),
         name: wishlist.title,
         items: itemsWithAddedByDisplayName,
         compiledNotes,
-        sharedInfo: wishlist.doc?.info ?? {}
+        sharedInfo: wishlist.doc?.info ?? {},
+        canManageWishlist: canManage
       })
     } catch (error) {
       req.flash('error', error)
@@ -207,7 +212,11 @@ export default function (db) {
 
   router.post('/:user/move/:direction/:itemId', verifyAuth(), async (req, res) => {
     try {
-      if (req.user._id !== req.params.user) {
+      // Get the target user document to check manager permissions
+      const targetUser = await db.users.get(req.params.user)
+      
+      // Check if user can move items (owner or manager)
+      if (!canMoveItems(req.user, req.params.user, targetUser)) {
         throw new Error(_CC.lang('WISHLIST_MOVE_GUARD'))
       }
 

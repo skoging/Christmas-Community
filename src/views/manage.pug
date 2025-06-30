@@ -1,0 +1,38 @@
+extends layout.pug
+
+block title
+  h1(style="margin-bottom: 0;")
+    | #{config.siteTitle}
+  p= lang('MANAGE_DESCRIPTION')
+
+block content
+  .columns
+    .column
+      if managedUsers && managedUsers.length > 0
+        .box
+          h2= lang('MANAGE_USERS_YOU_MANAGE')
+          each user in managedUsers
+            .field.is-grouped
+              .control
+                span.is-size-5= user.displayName || user._id
+                if user.isManaged
+                  | &nbsp;
+                  span.tag.is-info managed
+              .control
+                a.button.is-primary(href=`${_CC.config.base}manage/user/${user._id}`)
+                  span.icon
+                    i.fas.fa-edit
+                  span= lang('MANAGE_MANAGE_USER')
+              .control
+                a.button.is-link(href=`${_CC.config.base}wishlist/${user._id}`)
+                  span.icon
+                    i.fas.fa-list
+                  span= lang('MANAGE_VIEW_WISHLIST')
+      else
+        .box
+          h2= lang('MANAGE_NO_MANAGED_USERS')
+          p= lang('MANAGE_NO_MANAGED_USERS_DESCRIPTION')
+          a.button.is-primary(href=`${_CC.config.base}profile`)
+            span.icon
+              i.fas.fa-user
+            span= lang('MANAGE_BACK_TO_PROFILE') 

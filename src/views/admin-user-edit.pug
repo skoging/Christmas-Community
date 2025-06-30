@@ -91,44 +91,59 @@ block content
               .field
                 .control
                   input.input.button(type='submit', value=lang('ADMIN_USER_EDIT_PROMOTE', user.displayName || user._id), style='margin-top: 1em;')
-        //- if user._id !== req.user._id
-        //-   .column.is-narrow
-        //-     h2= lang('ADMIN_USER_EDIT_IMPERSONATE_HEADER')
-        //-       form(action=`${_CC.config.base}admin-settings/edit/impersonate/${user._id}`, method='POST')
-        //-         .field
-        //-           .control
-        //-             input.input.button.is-warning(type='submit', value=lang('ADMIN_USER_EDIT_IMPERSONATE_BUTTON', user._id), style='margin-top: 1em;')
-      //- h2(style='margin-bottom: 1em;')= lang('ADMIN_USER_EDIT_RESET_PASSWORD_HEADER')
-      //- if user.pwToken
-      //-   - const resetLink = `${_CC.config.base}resetpw/${user.pwToken}`
-      //-   p= lang('ADMIN_USER_EDIT_RESET_PASSWORD_HASLINK')
-      //-     if user.pwExpiry > new Date().getTime()
-      //-       span= lang('ADMIN_USER_EDIT_RESET_PASSWORD_HASLINK_EXPIRY_FUTURE', _CC.moment(user.pwExpiry).fromNow())
-      //-     else
-      //-       span.has-text-weight-bold.has-text-danger= lang('ADMIN_USER_EDIT_RESET_PASSWORD_HASLINK_EXPIRY_PAST', _CC.moment(user.pwExpiry).fromNow())
-      //-   a(href=resetLink)= resetLink
-      //-   .columns
-      //-     .column.is-narrow
-      //-       form(method='POST', action=`${_CC.config.base}admin-settings/edit/resetpw/${user._id}`)
-      //-         .field
-      //-           .control
-      //-               input.button.is-primary(type='submit' value=lang('ADMIN_USER_EDIT_RESET_PASSWORD_LINK_REFRESH'))
-      //-     .column.is-narrow
-      //-       form(method='POST', action=`${_CC.config.base}admin-settings/edit/cancelresetpw/${user._id}`)
-      //-         .field
-      //-           .control
-      //-               input.button.is-info(type='submit' value=lang('ADMIN_USER_EDIT_RESET_PASSWORD_LINK_CANCEL'))
-      //- else
-      //-   form(method='POST', action=`${_CC.config.base}admin-settings/edit/resetpw/${user._id}`)
-      //-     .field
-      //-       .control
-      //-           input.button.is-danger(type='submit' value=lang('ADMIN_USER_EDIT_RESET_PASSWORD_LINK_CREATE'))
-    .column.is-narrow
-      h2= lang('ADMIN_USER_EDIT_DELETE_HEADER')
-      form(method='POST', action=`${_CC.config.base}admin-settings/edit/remove/${user._id}`)
-        .field
-          .control
-            if user.admin
-              input.button.is-danger(disabled, type='submit' value=lang('ADMIN_USER_EDIT_DELETE_ADMIN'))
+
+        .column.is-narrow
+          h2= lang('ADMIN_USER_EDIT_MANAGERS')
+          if user.isManaged
+            p.is-marginless= lang('ADMIN_USER_EDIT_MANAGED_STATUS', user.displayName || user._id)
+            if user.managers && user.managers.length > 0
+              each manager in user.managers
+                .field.is-grouped
+                  .control
+                    span.is-size-6= manager.userId
+                    | &nbsp;(
+                    span.tag(class=manager.level === 'full' ? 'is-danger' : 'is-info')= manager.level
+                    | )
+                  .control
+                    form(action=`${_CC.config.base}admin-settings/edit/${user._id}/remove-manager/${manager.userId}`, method='POST', style='display: inline;')
+                      input.button.is-small.is-danger(type='submit', value=lang('ADMIN_USER_EDIT_MANAGERS_REMOVE'))
+                  .control
+                    if manager.level === 'full'
+                      form(action=`${_CC.config.base}admin-settings/edit/${user._id}/change-manager-level/${manager.userId}/collaborator`, method='POST', style='display: inline;')
+                        input.button.is-small.is-info(type='submit', value=lang('ADMIN_USER_EDIT_MANAGERS_MAKE_COLLABORATOR'))
+                    else
+                      form(action=`${_CC.config.base}admin-settings/edit/${user._id}/change-manager-level/${manager.userId}/full`, method='POST', style='display: inline;')
+                        input.button.is-small.is-danger(type='submit', value=lang('ADMIN_USER_EDIT_MANAGERS_MAKE_FULL'))
             else
-              input.button.is-danger(type='submit' value=lang('ADMIN_USER_EDIT_DELETE_USER', user.displayName || user._id))
+              p.is-size-7= lang('ADMIN_USER_EDIT_NO_MANAGERS')
+          else
+            p.is-marginless= lang('ADMIN_USER_EDIT_NOT_MANAGED', user.displayName || user._id)
+          
+          form(action=`${_CC.config.base}admin-settings/edit/${user._id}/add-manager`, method='POST')
+            .field
+              label.label= lang('ADMIN_USER_EDIT_MANAGERS_ADD_USER')
+              .control
+                .select
+                  select(name='managerId')
+                    each potentialManager in users.filter(u => u.doc._id !== user._id && !(user.managers && user.managers.some(m => m.userId === u.doc._id)))
+                      option(value=potentialManager.doc._id)= potentialManager.doc.displayName || potentialManager.doc._id
+            .field
+              label.label= lang('ADMIN_USER_EDIT_MANAGERS_LEVEL')
+              .control
+                .select
+                  select(name='level')
+                    option(value='full')= lang('ADMIN_USER_EDIT_MANAGERS_LEVEL_FULL')
+                    option(value='collaborator')= lang('ADMIN_USER_EDIT_MANAGERS_LEVEL_COLLABORATOR')
+            .field
+              .control
+                input.button.is-primary(type='submit', value=lang('ADMIN_USER_EDIT_MANAGERS_ADD'))
+
+        .column.is-narrow
+          h2= lang('ADMIN_USER_EDIT_DELETE_HEADER')
+          form(method='POST', action=`${_CC.config.base}admin-settings/edit/remove/${user._id}`)
+            .field
+              .control
+                if user.admin
+                  input.button.is-danger(disabled, type='submit' value=lang('ADMIN_USER_EDIT_DELETE_ADMIN'))
+                else
+                  input.button.is-danger(type='submit' value=lang('ADMIN_USER_EDIT_DELETE_USER', user.displayName || user._id))

@@ -51,14 +51,50 @@ export function canEditProfile(managerUser, targetUserId, targetUserDoc) {
  * @param {object} managerUser - The user who wants to manage managers
  * @param {string} targetUserId - The ID of the user whose managers are being modified
  * @param {object} targetUserDoc - The target user document
+ * @param {string} levelToAdd - The level being added ('full' or 'collaborator')
  * @returns {boolean}
  */
-export function canManageManagers(managerUser, targetUserId, targetUserDoc) {
-  // Only admins and full managers can manage managers
+export function canManageManagers(managerUser, targetUserId, targetUserDoc, levelToAdd = null) {
+  // Admins can manage all managers
   if (managerUser.admin) return true;
   
+  // Users can add collaborators to their own account
+  if (managerUser._id === targetUserId && levelToAdd === 'collaborator') {
+    return true;
+  }
+  
+  // Full managers can manage all managers
   const { canManage, level } = canManageWishlist(managerUser, targetUserId, targetUserDoc);
   return canManage && level === 'full';
+}
+
+/**
+ * Check if a user can remove a specific manager
+ * @param {object} managerUser - The user who wants to remove a manager
+ * @param {string} targetUserId - The ID of the user whose manager is being removed
+ * @param {object} targetUserDoc - The target user document
+ * @param {string} managerIdToRemove - The ID of the manager to remove
+ * @returns {boolean}
+ */
+export function canRemoveManager(managerUser, targetUserId, targetUserDoc, managerIdToRemove) {
+  // Admins can remove any manager
+  if (managerUser.admin) return true;
+  
+  // Full managers can remove any manager
+  const { canManage, level } = canManageWishlist(managerUser, targetUserId, targetUserDoc);
+  if (canManage && level === 'full') {
+    return true;
+  }
+  
+  // Users can remove collaborators from their own account (but not full managers)
+  if (managerUser._id === targetUserId) {
+    const managerToRemove = targetUserDoc.managers?.find(m => m.userId === managerIdToRemove);
+    if (managerToRemove && managerToRemove.level === 'collaborator') {
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 /**

@@ -1,6 +1,7 @@
 import express from 'express'
 import { 
-  canManageManagers, 
+  canManageManagers,
+  canRemoveManager,
   addManager, 
   removeManager, 
   updateManagerLevel, 
@@ -33,14 +34,14 @@ export default function ({ db }) {
     try {
       const targetUser = await db.users.get(req.params.userId)
       
-      // Check permissions
-      if (!canManageManagers(req.user, req.params.userId, targetUser)) {
-        return res.json({ success: false, error: 'Insufficient permissions' })
-      }
-
       // Validate level
       if (!['full', 'collaborator'].includes(req.params.level)) {
         return res.json({ success: false, error: 'Invalid manager level' })
+      }
+
+      // Check permissions
+      if (!canManageManagers(req.user, req.params.userId, targetUser, req.params.level)) {
+        return res.json({ success: false, error: 'Insufficient permissions' })
       }
 
       // Validate manager exists
@@ -60,7 +61,7 @@ export default function ({ db }) {
       const targetUser = await db.users.get(req.params.userId)
       
       // Check permissions
-      if (!canManageManagers(req.user, req.params.userId, targetUser)) {
+      if (!canRemoveManager(req.user, req.params.userId, targetUser, req.params.managerId)) {
         return res.json({ success: false, error: 'Insufficient permissions' })
       }
 

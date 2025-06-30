@@ -52,6 +52,45 @@ block content
         +sharedInfoProp('hatSize', 'PROFILE_HAT_SIZE')
         +sharedInfoProp('phoneModel', 'PROFILE_PHONE_MODEL')
 
+  h2= lang('PROFILE_COLLABORATORS_HEADER')
+  p= lang('PROFILE_COLLABORATORS_DESCRIPTION')
+  
+  if currentManagers && currentManagers.length > 0
+    .box
+      h3 Current Managers
+      each manager in currentManagers
+        .field.is-grouped
+          .control
+            span.is-size-6= manager.userId
+            | &nbsp;(
+            span.tag(class=manager.level === 'full' ? 'is-danger' : 'is-info')= manager.level
+            | )
+          if manager.level === 'collaborator'
+            .control
+              form(action=`${_CC.config.base}profile/remove-collaborator/${manager.userId}`, method='POST', style='display: inline;')
+                input.button.is-small.is-danger(type='submit', value=lang('PROFILE_COLLABORATORS_REMOVE'))
+          else
+            .control
+              span.tag.is-light.is-size-7 Contact admin to remove full managers
+  else
+    p.is-size-7= lang('PROFILE_COLLABORATORS_NO_COLLABORATORS')
+
+  if availableUsers && availableUsers.length > 0
+    .box
+      h3= lang('PROFILE_COLLABORATORS_ADD_USER')
+      form(action=`${_CC.config.base}profile/add-collaborator`, method='POST')
+        .field
+          label.label= lang('PROFILE_COLLABORATORS_SELECT_USER')
+          .control
+            .select
+              select(name='collaboratorId', required)
+                option(value='', disabled, selected)= lang('PROFILE_COLLABORATORS_SELECT_USER')
+                each user in availableUsers
+                  option(value=user.doc._id)= user.doc.displayName || user.doc._id
+        .field
+          .control
+            input.button.is-primary(type='submit', value=lang('PROFILE_COLLABORATORS_ADD'))
+
   //- h2= lang('PROFILE_SECURITY')
   //- a.button.is-primary(href=`${_CC.config.base}profile/password`)
   //-   span.icon

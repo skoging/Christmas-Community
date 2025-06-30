@@ -11,6 +11,7 @@ import ConfirmAccount from './confirm-account/index.js'
 import Wishlist from './wishlist/index.js'
 import SupportedSites from './supported-sites/index.js'
 import Profile from './profile/index.js'
+import Manage from './manage/index.js'
 import AdminSettings from './adminSettings/index.js'
 import ManifestJson from './manifest.json/index.js'
 import Google from './google-auth/index.js'
@@ -56,6 +57,8 @@ export default ({ db, config, ensurePfp }) => {
   router.use('/supported-sites', SupportedSites())
 
   router.use('/profile', Profile({ db, config, ensurePfp }))
+
+  router.use('/manage', Manage({ db }))
 
   router.use('/admin-settings', AdminSettings({ db, ensurePfp }))
 

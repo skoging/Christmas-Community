@@ -30,6 +30,7 @@ nav.navbar.is-fixed-top(role='navigation', aria-label='main navigation',style='b
             .navbar-dropdown
               +navBarLink(`${_CC.config.base}wishlist/${req.user._id}`, lang('NAVBAR_WISHLIST'))
               +navBarLink(`${_CC.config.base}profile`, lang('NAVBAR_PROFILE'))
+              +navBarLink(`${_CC.config.base}manage`, lang('NAVBAR_MANAGE'))
               if req.user.admin
                 +navBarLink(`${_CC.config.base}admin-settings`, lang('NAVBAR_ADMIN'))
               //- hr.navbar-divider

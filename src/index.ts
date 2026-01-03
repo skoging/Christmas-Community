@@ -85,8 +85,14 @@ if (config.cfZeroAuthSSOEnabled) {
       const user = await db.users.get(sub)
 			// Update email if it's missing or has changed
 			if (email && user.email !== email) {
-				user.email = email
-				await db.users.put(user)
+				try {
+					user.email = email
+					await db.users.put(user)
+					logger.log('auth', `Updated email for user ${sub}: ${email}`)
+				} catch (putErr) {
+					// Log error but continue - email might be updated by middleware
+					console.error('Error updating email in JWT callback:', putErr)
+				}
 			}
 			return done(null, user)
     } catch (err) {
@@ -288,19 +294,39 @@ app.get("/health/ready", async (req, res) => {
 if (config.cfZeroAuthSSOEnabled) {
 	app.use(passport.authenticate('cf_jwt', { session: false }))
 	app.use(async (req, res, next) => {
-		if (req["user"].displayName == null) {
-			const response = await fetch(`https://${config.cfTeamName}.cloudflareaccess.com/cdn-cgi/access/get-identity`, {
-				headers: { cookie: `CF_Authorization=${req.headers["cf-access-jwt-assertion"]}` }
-			})
-			const profile = await response.json()
+		const needsUpdate = req["user"].displayName == null || !req["user"].email
+		if (needsUpdate) {
+			try {
+				const response = await fetch(`https://${config.cfTeamName}.cloudflareaccess.com/cdn-cgi/access/get-identity`, {
+					headers: { cookie: `CF_Authorization=${req.headers["cf-access-jwt-assertion"]}` }
+				})
+				const profile = await response.json() as { name?: string; email?: string }
 
-			const doc = await db.users.get(req["user"]._id)
-			doc.displayName = profile.name
-			// Extract email from profile if available and not already set
-			if (profile.email && !doc.email) {
-				doc.email = profile.email
+				const doc = await db.users.get(req["user"]._id)
+				let updated = false
+				
+				if (doc.displayName == null && profile.name) {
+					doc.displayName = profile.name
+					updated = true
+          logger.log('auth', `Updated display name for user ${doc._id} from profile: ${profile.name}`)
+				}
+				// Extract email from profile if available and not already set
+				if (!doc.email && profile.email) {
+					doc.email = profile.email
+					updated = true
+					logger.log('auth', `Updated email for user ${doc._id} from profile: ${profile.email}`)
+				}
+				
+				if (updated) {
+					await db.users.put(doc)
+					logger.log('auth', `Saved updated user ${doc._id} to database`)
+					// Update req.user to reflect changes
+					req["user"] = doc
+				}
+			} catch (err) {
+				// Log error but don't block request
+				console.error('Error updating user profile:', err)
 			}
-      await db.users.put(doc)
 		}
 		next()
 	})

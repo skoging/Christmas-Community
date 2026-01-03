@@ -83,6 +83,11 @@ if (config.cfZeroAuthSSOEnabled) {
     try {
       // Try to get the user from the database
       const user = await db.users.get(sub)
+			// Update email if it's missing or has changed
+			if (email && user.email !== email) {
+				user.email = email
+				await db.users.put(user)
+			}
 			return done(null, user)
     } catch (err) {
       // Handle other errors, including missing user
@@ -93,6 +98,7 @@ if (config.cfZeroAuthSSOEnabled) {
 					await db.users.put({
 						_id: sub,
 						admin: email === config.cfSetupAdminEmail,
+						email: email || undefined,
 						wishlist: [],
 						groups: []
 					})
@@ -290,6 +296,10 @@ if (config.cfZeroAuthSSOEnabled) {
 
 			const doc = await db.users.get(req["user"]._id)
 			doc.displayName = profile.name
+			// Extract email from profile if available and not already set
+			if (profile.email && !doc.email) {
+				doc.email = profile.email
+			}
       await db.users.put(doc)
 		}
 		next()
